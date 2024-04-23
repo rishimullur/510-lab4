@@ -24,13 +24,19 @@ def geocode_location(location):
 
 # Function to retrieve weather data using weather.gov API
 def get_weather(lon, lat):
-    url = f"https://api.weather.gov/points/{lat},{lon}/forecast"
+    forecast_endpoint = None
+    url = f"https://api.weather.gov/points/{lon},{lat}"
     response = requests.get(url)
     data = response.json()
-    if "properties" in data:
-        return data["properties"]["periods"][0]["detailedForecast"]
-    else:
-        return None
+    # print(url, data)
+    if "properties" in data and "forecast" in data["properties"]:
+        forecast_endpoint = data["properties"]["forecast"]
+    if forecast_endpoint:
+        response = requests.get(forecast_endpoint)
+        forecast_data = response.json()
+        if "properties" in forecast_data and "periods" in forecast_data["properties"]:
+            return forecast_data["properties"]["periods"][0]["detailedForecast"]
+    return None
 
 def weather_app():
     st.title("Weather App")
@@ -56,7 +62,7 @@ def scrape_books():
     base_url = "https://books.toscrape.com/catalogue/"
     book_data = {}
 
-    for page_number in range(1, 2):  # Loop through pages 1 to 50
+    for page_number in range(1, 5):  # Loop through pages 1 to 50
         page_url = f"{base_url}page-{page_number}.html"
         response = requests.get(page_url)
         soup = BeautifulSoup(response.content, "html.parser")
@@ -134,7 +140,8 @@ def main():
         st.title("Book Search")
     
 
-        book_data = scrape_books()
+        with st.spinner("Scraping and loading all the data. This may take a while..."):
+            book_data = scrape_books()
         create_database(book_data)
 
         search_term = st.text_input("Search for a book")
