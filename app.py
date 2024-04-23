@@ -61,8 +61,10 @@ def connect_db():
 def scrape_books():
     base_url = "https://books.toscrape.com/catalogue/"
     book_data = {}
+    progress_bar = st.progress(0)
 
-    for page_number in range(1, 5):  # Loop through pages 1 to 50
+    for page_number in range(1, 51):  # Loop through pages 1 to 50
+        print(f"Scraping page {page_number}")
         page_url = f"{base_url}page-{page_number}.html"
         response = requests.get(page_url)
         soup = BeautifulSoup(response.content, "html.parser")
@@ -103,14 +105,17 @@ def scrape_books():
             book_key = f"{title}|{book_url}"
             book_data[book_key] = book_info
 
+        progress_bar.progress(page_number / 50)
+
+    progress_bar.empty()
     return book_data.values()
 
 def create_database(book_data):
     conn = connect_db()
     c = conn.cursor()
 
-    # Drop existing books table if it exists
-    c.execute("DROP TABLE IF EXISTS books")
+    # # Drop existing books table if it exists
+    # c.execute("DROP TABLE IF EXISTS books")
 
     c.execute("""CREATE TABLE IF NOT EXISTS books
                  (title TEXT, price REAL, rating REAL, description TEXT)""")
