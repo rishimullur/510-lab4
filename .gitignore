@@ -1,0 +1,16 @@
+# Ignore database files
+*.db
+
+# Ignore __pycache__ directories
+__pycache__/
+
+# Ignore compiled Python files
+*.pyc
+
+# Ignore editor-specific files
+.vscode/
+.idea/
+
+# Ignore operating system files
+.DS_Store
+Thumbs.db
