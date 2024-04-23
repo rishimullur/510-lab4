@@ -10,8 +10,8 @@
 
  .
   ## Steps to Run Locally:
-  1. **Clone the Repository:** Clone the repository containing the code for the Book Search App.  ```bash\n   git clone <repository-url>\n   ```
-  2. **Navigate to the Directory:** Change your current directory to the cloned repository.  ```bash\n   cd <repository-folder>\n   ```
-  3. **Install Dependencies:** Install the required Python packages using pip.   ```bash\n   pip install -r requirements.txt\n   ```
-  4. **Set Environment Variables:** Create a `.env` file in the root directory of the project and set the necessary environment variables. For example:   ```\n   DATABASE_URL=your_database_url\n   ```
-  5. **Run the App:** Execute the main Python script to run the Book Search App.   ```bash\n   streamlit run app.py\n   ```
+  1. **Clone the Repository:** Clone the repository containing the code for the Book Search App.  ```bash  git clone <repository-url>  ```
+  2. **Navigate to the Directory:** Change your current directory to the cloned repository.  ```bash  cd <repository-folder>   ```
+  3. **Install Dependencies:** Install the required Python packages using pip.   ```bash   pip install -r requirements.txt   ```
+  4. **Set Environment Variables:** Create a `.env` file in the root directory of the project and set the necessary environment variables. For example:   ```   DATABASE_URL=your_database_url   ```
+  5. **Run the App:** Execute the main Python script to run the Book Search App.   ```bash   streamlit run app.py   ```
