@@ -8,8 +8,29 @@ def scrape_books():
     response = requests.get(url)
     soup = BeautifulSoup(response.content, "html.parser")
 
-    # TODO:Extract book data from the HTML using BeautifulSoup
+    book_data = []
 
+    # Find all the book containers
+    book_containers = soup.find_all("article", class_="product_pod")
+
+    # Iterate through each book container
+    for book in book_containers:
+        # Extract book details
+        title = book.h3.a["title"]
+        price = book.select_one(".price_color").text
+        rating = book.select_one(".star-rating")["class"][1]
+        description = book.select_one(".product_pod > p").text.strip()
+
+        # Create a dictionary for the book data
+        book_info = {
+            "title": title,
+            "price": price,
+            "rating": rating,
+            "description": description
+        }
+
+        # Append the book data to the list
+        book_data.append(book_info)
 
     return book_data
 
