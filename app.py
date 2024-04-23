@@ -36,6 +36,21 @@ def get_weather(lon, lat):
             return forecast_data["properties"]["periods"][0]["detailedForecast"]
     return None
 
+def weather_app():
+    st.title("Weather App")
+    location = st.text_input("Enter Location Name")
+    if st.button("Get Weather"):
+        lon, lat = geocode_location(location)
+        if lon is not None and lat is not None:
+            weather = get_weather(lon, lat)
+            if weather:
+                st.write("Weather Forecast:")
+                st.write(weather)
+            else:
+                st.write("Weather data not available")
+        else:
+            st.write("Invalid location")
+
 # Function to establish connection to PostgreSQL database
 def connect_db():
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
@@ -141,7 +156,8 @@ def main():
         st.title("Book Search")
     
         # Scrape and load data if the database is empty
-        scrape_books()
+        if check_database_empty():
+            scrape_books()
 
         search_term = st.text_input("Search for a book")
         if search_term:
