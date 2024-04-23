@@ -11,7 +11,6 @@ load_dotenv()
 # Function to geocode location using OpenStreetMap API
 def geocode_location(location):
     url = f"http://nominatim.openstreetmap.org/search?q={location}&format=json"
-    print(url)
     response = requests.get(url)
     data = response.json()
     if data:
@@ -28,7 +27,6 @@ def get_weather(lon, lat):
     url = f"https://api.weather.gov/points/{lon},{lat}"
     response = requests.get(url)
     data = response.json()
-    # print(url, data)
     if "properties" in data and "forecast" in data["properties"]:
         forecast_endpoint = data["properties"]["forecast"]
     if forecast_endpoint:
@@ -38,21 +36,6 @@ def get_weather(lon, lat):
             return forecast_data["properties"]["periods"][0]["detailedForecast"]
     return None
 
-def weather_app():
-    st.title("Weather App")
-    location = st.text_input("Enter Location Name")
-    if st.button("Get Weather"):
-        lon, lat = geocode_location(location)
-        if lon is not None and lat is not None:
-            weather = get_weather(lon, lat)
-            if weather:
-                st.write("Weather Forecast:")
-                st.write(weather)
-            else:
-                st.write("Weather data not available")
-        else:
-            st.write("Invalid location")
-
 # Function to establish connection to PostgreSQL database
 def connect_db():
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
@@ -61,72 +44,84 @@ def connect_db():
 def scrape_books():
     base_url = "https://books.toscrape.com/catalogue/"
     book_data = {}
-    progress_bar = st.progress(0)
 
-    for page_number in range(1, 51):  # Loop through pages 1 to 50
-        print(f"Scraping page {page_number}")
-        page_url = f"{base_url}page-{page_number}.html"
-        response = requests.get(page_url)
-        soup = BeautifulSoup(response.content, "html.parser")
+    # Scrape and load data only if the database is empty
+    if not check_database_empty():
+        with st.spinner("Scraping and loading all the data. This may take a while..."):
+            for page_number in range(1, 51):  # Loop through pages 1 to 50
+                print(f"Scraping page {page_number}")
+                page_url = f"{base_url}page-{page_number}.html"
+                response = requests.get(page_url)
+                soup = BeautifulSoup(response.content, "html.parser")
 
-        book_containers = soup.select(".product_pod")
+                book_containers = soup.select(".product_pod")
 
-        for book in book_containers:
-            book_link = book.select_one("h3 a")["href"]
-            book_url = base_url + book_link.replace("../", "")
+                for book in book_containers:
+                    book_link = book.select_one("h3 a")["href"]
+                    book_url = base_url + book_link.replace("../", "")
 
-            title = book.select_one("h3 a")["title"]
-            price_text = book.select_one(".price_color").text
+                    title = book.select_one("h3 a")["title"]
+                    price_text = book.select_one(".price_color").text
 
-            # Extracting numeric part from price text
-            price = float(price_text.replace("£", ""))
+                    # Extracting numeric part from price text
+                    price = float(price_text.replace("£", ""))
 
-            rating_element = book.select_one(".star-rating")
-            rating_text = rating_element["class"][1]
-            rating_mapping = {"One": 1, "Two": 2, "Three": 3, "Four": 4, "Five": 5}
-            rating = rating_mapping.get(rating_text, None)
+                    rating_element = book.select_one(".star-rating")
+                    rating_text = rating_element["class"][1]
+                    rating_mapping = {"One": 1, "Two": 2, "Three": 3, "Four": 4, "Five": 5}
+                    rating = rating_mapping.get(rating_text, None)
 
-            book_page = requests.get(book_url)
-            book_page_soup = BeautifulSoup(book_page.content, "html.parser")
+                    book_page = requests.get(book_url)
+                    book_page_soup = BeautifulSoup(book_page.content, "html.parser")
 
-            description_element = book_page_soup.select_one("#product_description + p")
-            if description_element:
-                description = description_element.text.strip()
-            else:
-                description = ""
+                    description_element = book_page_soup.select_one("#product_description + p")
+                    if description_element:
+                        description = description_element.text.strip()
+                    else:
+                        description = ""
 
-            book_info = {
-                "title": title,
-                "price": price,
-                "rating": rating,
-                "description": description
-            }
+                    book_info = {
+                        "title": title,
+                        "price": price,
+                        "rating": rating,
+                        "description": description
+                    }
 
-            book_key = f"{title}|{book_url}"
-            book_data[book_key] = book_info
+                    book_key = f"{title}|{book_url}"
+                    book_data[book_key] = book_info
 
-        progress_bar.progress(page_number / 50)
+                # Update progress bar
+                progress_bar.progress(page_number / 50)
 
-    progress_bar.empty()
-    return book_data.values()
+        # Insert scraped data into the database
+        create_database(book_data)
 
+def check_database_empty():
+    conn = connect_db()
+    c = conn.cursor()
+    c.execute("SELECT EXISTS (SELECT 1 FROM books)")
+    result = c.fetchone()[0]
+    conn.close()
+    return not result
+
+# Function to create database table and insert data
 def create_database(book_data):
     conn = connect_db()
     c = conn.cursor()
 
-    # # Drop existing books table if it exists
-    # c.execute("DROP TABLE IF EXISTS books")
-
+    # Create books table if it doesn't exist
     c.execute("""CREATE TABLE IF NOT EXISTS books
                  (title TEXT, price REAL, rating REAL, description TEXT)""")
 
-    for book in book_data:
+    # Insert book data into the database
+    for book in book_data.values():
         c.execute("INSERT INTO books VALUES (%s, %s, %s, %s)",
                   (book["title"], book["price"], book["rating"], book["description"]))
 
     conn.commit()
     conn.close()
 
+# Function to query the database
 def query_database(query, params=None):
     conn = connect_db()
     c = conn.cursor()
@@ -144,10 +139,8 @@ def main():
     if app_mode == "Book Search":
         st.title("Book Search")
     
-
-        with st.spinner("Scraping and loading all the data. This may take a while..."):
-            book_data = scrape_books()
-        create_database(book_data)
+        # Scrape and load data if the database is empty
+        scrape_books()
 
         search_term = st.text_input("Search for a book")
         if search_term:
