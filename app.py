@@ -44,7 +44,7 @@ def connect_db():
 def scrape_books():
     base_url = "https://books.toscrape.com/catalogue/"
     book_data = {}
-
+    progress_bar = st.progress(0)
     # Scrape and load data only if the database is empty
     if not check_database_empty():
         with st.spinner("Scraping and loading all the data. This may take a while..."):
@@ -92,7 +92,8 @@ def scrape_books():
 
                 # Update progress bar
                 progress_bar.progress(page_number / 50)
-
+        
+        progress_bar.empty()
         # Insert scraped data into the database
         create_database(book_data)
 
